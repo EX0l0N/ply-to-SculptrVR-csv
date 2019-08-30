@@ -25,13 +25,13 @@ const (
 type ply_header struct {
 	num_vertices int64
 	has_alpha    bool
-	field_order  []int
+	field_order  []byte
 }
 
 func parse_header(in io.Reader) ply_header {
 	var checked_fields [REQ_FIELD_LEN]bool
 	var header ply_header
-	header.field_order = make([]int, 0, 7)
+	header.field_order = make([]byte, 0, 7)
 
 	r := csv.NewReader(in)
 	r.Comma = ' '
