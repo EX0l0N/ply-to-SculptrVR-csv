@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 )
@@ -26,7 +28,7 @@ type ply_header struct {
 	field_order  []int
 }
 
-func parse_header(in *os.File) ply_header {
+func parse_header(in io.Reader) ply_header {
 	var checked_fields [REQ_FIELD_LEN]bool
 	var header ply_header
 	header.field_order = make([]int, 0, 7)
@@ -83,7 +85,7 @@ func parse_header(in *os.File) ply_header {
 					header.field_order = append(header.field_order, REQ_Z)
 				default:
 					fmt.Println(line)
-					panic("Can't read that.")
+					panic("A parsing error at this stage will most likely be caused by normals. Please don't include normals in your ply.")
 				}
 			case "uchar":
 				switch line[2] {
@@ -125,11 +127,13 @@ func parse_header(in *os.File) ply_header {
 
 func main() {
 	var header ply_header
+	var input io.Reader
 
 	if infile, err := os.Open(os.Args[1]); err != nil {
 		panic(err)
 	} else {
-		header = parse_header(infile)
+		input = bufio.NewReader(infile)
 	}
+	header = parse_header(input)
 	fmt.Println(header)
 }
