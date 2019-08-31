@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/binary"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -27,6 +28,15 @@ type ply_header struct {
 	has_alpha    bool
 	field_order  []byte
 }
+
+type point [3]byte
+
+type coord_point struct {
+	x, y, z float32
+	p       point
+}
+
+type pointcloud map[float32]map[float32]map[float32]point
 
 func parse_header(in io.Reader) ply_header {
 	var checked_fields [REQ_FIELD_LEN]bool
@@ -125,9 +135,62 @@ func parse_header(in io.Reader) ply_header {
 	return header
 }
 
+func read_float32(in *bufio.Reader) float32 {
+	var f float32
+
+	if err := binary.Read(in, binary.LittleEndian, &f); err != nil {
+		panic(fmt.Sprint("binary.Read failed:", err))
+	}
+
+	return f
+}
+
+func read_byte(in *bufio.Reader) byte {
+	var b byte
+
+	if err := binary.Read(in, binary.LittleEndian, &b); err != nil {
+		panic(fmt.Sprint("binary.Read failed:", err))
+	}
+
+	return b
+}
+
+func read_pointcloud(input *bufio.Reader, header ply_header) pointcloud {
+	pc := make(map[float32]map[float32]map[float32]point)
+
+	for c := int64(0); c < header.num_vertices; c++ {
+		var cp coord_point
+
+		for i := 0; i < len(header.field_order); i++ {
+			switch header.field_order[i] {
+			case REQ_X:
+				cp.x = read_float32(input)
+			case REQ_Y:
+				cp.y = read_float32(input)
+			case REQ_Z:
+				cp.z = read_float32(input)
+			case REQ_RED:
+				cp.p[0] = read_byte(input)
+			case REQ_GREEN:
+				cp.p[1] = read_byte(input)
+			case REQ_BLUE:
+				cp.p[2] = read_byte(input)
+			case REQ_ALPHA:
+				if d, err := input.Discard(1); err != nil || d != 1 {
+					panic("Unable to discard one byte.")
+				}
+			default:
+				panic("Wrong use of field order.")
+			}
+		}
+	}
+
+	return pc
+}
+
 func main() {
 	var header ply_header
-	var input io.Reader
+	var input *bufio.Reader
 
 	if infile, err := os.Open(os.Args[1]); err != nil {
 		panic(err)
@@ -136,4 +199,6 @@ func main() {
 	}
 	header = parse_header(input)
 	fmt.Println(header)
+	cloud := read_pointcloud(input, header)
+	fmt.Println(cloud)
 }
