@@ -16,12 +16,12 @@ Using SculptrVR we might be able to work on these point clouds and use SculptrVR
 
 ## Preperations
 
-You are going to need some PLY file. There are some expectations to meed that I assumed to be acceptable during writing.
+You are going to need some PLY file. There are some expectations to meet that I assumed to be acceptable during writing.
 
 - binary, little endian encoding
 - no normals on vertices (since they are muxed into the vertex stream it breaks my code)
 - nothing but coordinates and color to be precise
-- your model should be normalized to a [-1, 1] bounding box
+- your model should be normalized to a [-1, 1] bounding box (for scaling)
 
 All these requirements should be easy to meet, exporting you model as `.ply` with [MeshLab](http://www.meshlab.net/) and disabling everything but vertex color in the export.  
 Make sure to check binary export. (No ASCII support)
@@ -38,7 +38,7 @@ You are expected to run this from any kind `shell`. (sorry no GUI(, yet?))
 Since I even use `bash` [(MSYS2)](https://www.msys2.org/) when on windows I have no idea how this would look on the default Windows command line.  
 But you should be able to figure it out.
 
-Be warned: **The output is alway `data.csv` in your current working directory**  
+Be warned: **The output is always `data.csv` in your current working directory**  
 This might change if I find the time to work on minor stuff.
 
 ### Invocation
