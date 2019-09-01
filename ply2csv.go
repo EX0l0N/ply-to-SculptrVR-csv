@@ -278,7 +278,7 @@ func write_data_csv_from_raster(r intpointcloud) {
 
 	bw := bufio.NewWriter(f)
 
-	bw.WriteString("X, Y, Z, R, G, B")
+	bw.WriteString("X, Y, Z, R, G, B\r\n")
 
 	for x, _ := range r {
 		for y, _ := range r[x] {
@@ -321,6 +321,6 @@ func main() {
 	fmt.Println("Reading ply vertex data…")
 	cloud := read_pointcloud(input, header)
 	raster := raster_and_merge_pointcloud(scale, cloud)
-	fmt.Println("Wrting data.csv")
+	fmt.Println("Wrting data.csv.")
 	write_data_csv_from_raster(raster)
 }
