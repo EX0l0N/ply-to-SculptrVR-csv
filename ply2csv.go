@@ -271,10 +271,26 @@ func raster_and_merge_pointcloud(fsc float64, fpc floatpointcloud) intpointcloud
 }
 
 func write_data_csv_from_raster(r intpointcloud) {
-	f, err := os.OpenFile("data.csv", os.O_RDWR|os.O_CREATE, 0755)
+	f, err := os.OpenFile("data.csv", os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		panic(err)
 	}
+
+	bw := bufio.NewWriter(f)
+
+	for x, _ := range r {
+		for y, _ := range r[x] {
+			for z, _ := range r[x][y] {
+				p := r[x][y][z]
+				bw.WriteString(fmt.Sprintf("%d, %d, %d, %d, %d, %d\r\n", x, y, z, p[0], p[1], p[2]))
+			}
+		}
+	}
+
+	if err := bw.Flush(); err != nil {
+		panic(err)
+	}
+
 	if err := f.Close(); err != nil {
 		panic(err)
 	}
@@ -303,5 +319,6 @@ func main() {
 	fmt.Println("Reading ply vertex data…")
 	cloud := read_pointcloud(input, header)
 	raster := raster_and_merge_pointcloud(scale, cloud)
-	fmt.Println(raster)
+	fmt.Println("Wrting data.csv")
+	write_data_csv_from_raster(raster)
 }
