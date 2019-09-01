@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strconv"
 )
@@ -36,7 +37,8 @@ type coord_point struct {
 	p       point
 }
 
-type pointcloud map[float32]map[float32]map[float32]point
+type floatpointcloud map[float32]map[float32]map[float32][]point
+type intpointcloud map[int32]map[int32]map[int32]point
 
 func parse_header(in io.Reader) ply_header {
 	var checked_fields [REQ_FIELD_LEN]bool
@@ -155,8 +157,8 @@ func read_byte(in *bufio.Reader) byte {
 	return b
 }
 
-func read_pointcloud(input *bufio.Reader, header ply_header) pointcloud {
-	pc := make(map[float32]map[float32]map[float32]point)
+func read_pointcloud(input *bufio.Reader, header ply_header) floatpointcloud {
+	pc := make(map[float32]map[float32]map[float32][]point)
 
 	for c := int64(0); c < header.num_vertices; c++ {
 		var cp coord_point
@@ -183,22 +185,123 @@ func read_pointcloud(input *bufio.Reader, header ply_header) pointcloud {
 				panic("Wrong use of field order.")
 			}
 		}
+
+		if _, ok := pc[cp.x]; !ok {
+			pc[cp.x] = make(map[float32]map[float32][]point)
+		}
+		if _, ok := pc[cp.x][cp.y]; !ok {
+			pc[cp.x][cp.y] = make(map[float32][]point)
+		}
+		if _, ok := pc[cp.x][cp.y][cp.z]; !ok {
+			pc[cp.x][cp.y][cp.z] = make([]point, 1, 3)
+			pc[cp.x][cp.y][cp.z][0] = cp.p
+		} else {
+			fmt.Printf("Double vertex encountered at %q, %q, %q.\n", cp.x, cp.y, cp.z)
+			pc[cp.x][cp.y][cp.z] = append(pc[cp.x][cp.y][cp.z], cp.p)
+		}
 	}
 
 	return pc
 }
 
+func raster_and_merge_pointcloud(fsc float64, fpc floatpointcloud) intpointcloud {
+	rasted := make(map[int32]map[int32]map[int32][]point)
+	ipc := make(map[int32]map[int32]map[int32]point)
+
+	fmt.Println("Scaling vertex indices to int32…")
+
+	for x, _ := range fpc {
+		var scaledx = int32(math.Round(fsc * float64(x)))
+
+		if _, ok := rasted[scaledx]; !ok {
+			rasted[scaledx] = make(map[int32]map[int32][]point)
+		}
+
+		for y, _ := range fpc[x] {
+			var scaledy = int32(math.Round(fsc * float64(y)))
+
+			if _, ok := rasted[scaledx][scaledy]; !ok {
+				rasted[scaledx][scaledy] = make(map[int32][]point)
+			}
+
+			for z, _ := range fpc[x][y] {
+				var scaledz = int32(math.Round(fsc * float64(z)))
+
+				if _, ok := rasted[scaledx][scaledy][scaledz]; !ok {
+					rasted[scaledx][scaledy][scaledz] = make([]point, 0, 5)
+				}
+				rasted[scaledx][scaledy][scaledz] = append(rasted[scaledx][scaledy][scaledz], fpc[x][y][z]...)
+			}
+		}
+	}
+
+	fmt.Println("Merging colors of double vertices…")
+
+	for x, _ := range rasted {
+
+		if _, ok := ipc[x]; !ok {
+			ipc[x] = make(map[int32]map[int32]point)
+		}
+
+		for y, _ := range rasted[x] {
+
+			if _, ok := ipc[x][y]; !ok {
+				ipc[x][y] = make(map[int32]point)
+			}
+
+			for z, _ := range rasted[x][y] {
+				var reds int
+				var greens int
+				var blues int
+
+				var point_slice_length = len(rasted[x][y][z])
+
+				for _, point := range rasted[x][y][z] {
+					reds += int(point[0])
+					greens += int(point[1])
+					blues += int(point[2])
+				}
+
+				ipc[x][y][z] = point{byte(reds / point_slice_length), byte(greens / point_slice_length), byte(blues / point_slice_length)}
+			}
+		}
+	}
+
+	return ipc
+}
+
+func write_data_csv_from_raster(r intpointcloud) {
+	f, err := os.OpenFile("data.csv", os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		panic(err)
+	}
+	if err := f.Close(); err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	var header ply_header
 	var input *bufio.Reader
+	var scale float64
 
-	if infile, err := os.Open(os.Args[1]); err != nil {
+	if s, err := strconv.ParseFloat(os.Args[1], 64); err != nil {
+		panic(fmt.Sprintf("Can not parse %q as scale.\n", os.Args[1]))
+	} else {
+		scale = s
+	}
+
+	if infile, err := os.Open(os.Args[2]); err != nil {
 		panic(err)
 	} else {
+		defer infile.Close()
 		input = bufio.NewReader(infile)
 	}
+
+	fmt.Println("Reading ply header…")
 	header = parse_header(input)
-	fmt.Println(header)
+	fmt.Println("Reading ply vertex data…")
 	cloud := read_pointcloud(input, header)
-	fmt.Println(cloud)
+	raster := raster_and_merge_pointcloud(scale, cloud)
+	fmt.Println(raster)
 }
