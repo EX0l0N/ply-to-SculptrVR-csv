@@ -30,6 +30,9 @@ Make sure to check binary export. (No ASCII support)
 
 I have prepared binaries for Linux and Windows. You may grab a suitable version from the `bin/` folder of this repo.
 
+- [Windows](https://github.com/EX0l0N/ply-to-SculptrVR-csv/raw/master/bin/windows_amd64/ply2csv.exe)
+- [Linux](https://github.com/EX0l0N/ply-to-SculptrVR-csv/raw/master/bin/linux_amd64/ply2csv)
+
 You are expected to run this from any kind `shell`. (sorry no GUI(, yet?))
 
 Since I even use `bash` [(MSYS2)](https://www.msys2.org/) when on windows I have no idea how this would look on the default Windows command line.  
