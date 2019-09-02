@@ -284,7 +284,7 @@ func write_data_csv_from_raster(r intpointcloud) {
 		for y, _ := range r[x] {
 			for z, _ := range r[x][y] {
 				p := r[x][y][z]
-				bw.WriteString(fmt.Sprintf("%d, %d, %d, 10, %d, %d, %d, 255\r\n", x, y, z, p[0], p[1], p[2]))
+				bw.WriteString(fmt.Sprintf("%d, %d, %d, 10, %d, %d, %d, 255\r\n", x, z, y, p[0], p[1], p[2]))
 			}
 		}
 	}
