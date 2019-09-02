@@ -1,6 +1,8 @@
 # ply-to-SculptrVR-csv
 
-### ply2csv takes [PLY files](https://en.wikipedia.org/wiki/PLY_(file_format)) and puts out `data.csv`.
+### ply2csv takes [PLY files](https://en.wikipedia.org/wiki/PLY_(file_format)) and puts out `Data.csv`.
+
+![](https://raw.githubusercontent.com/EX0l0N/ply-to-SculptrVR-csv/master/img/eike.jpg)
 
 ## Motivation
 
@@ -60,15 +62,47 @@ In practice this could translate to something like:
 
 ## What it does
 
-The current version of `ply2csv` will take your points, scale their coordinates by the scale factor and raster the resulting coordinates to `int`.  
+The current version of `ply2csv` will take your points, scale their coordinates by the scale factor and raster the resulting coordinates to `int`. While saving the Y & Z axis will be swapped, because ply default is Y-up and Z-depth.  
 If several points fall together due to the effect of rouding (which is actually a good thing to create more dense data), the colors of all those points will be averaged.
+
+This effect should be used to scale your point cloud to an optimal size, where most voxels are touching each other, but you don't loose to many of them because they got merged.
+
+*Go play with scale!*
+
+## How to import to SculptrVR
+
+It's a little secret, actually - _and it does only work for the PC version!_
+
+You have to move the `Data.csv` file into a folder named `CSVs` at the top-level of the SculptrVR installation folder.  
+_Which is **not** your documents folder_.
+
+Here's a piece of my SteamLibrary to help you figure out where:
+
+```
+SteamLibrary
+└── steamapps
+    ├── common
+    │   └── sculptrvr
+    │       ├── Engine
+    │       ├── SculptrVR
+    │       │   ├── Binaries
+    │       │   ├── Content
+    │       │   ├── CSVs
+    │       │   │   └── Data.csv
+    │       │   └── Plugins
+    │       └── SculptrVR.exe
+```
+
+If you created that folder and put `Data.csv` there, you may press `ctrl-shift-L` anytime in SculptrVR to load the data.  
+Be sure that **the window has focus** (if you see a steam dialog in front, click into SculptrVRs window).
+
+**Most likely you will not see very much, as long as your current layer is not set to block mode.**
+
+The other modes try to smooth surfaces, which will totally eat up a single layer of voxels - especially when there are holes in it.
 
 ## What the future might bring
 
 The author of SculptrVR has described several alternative formats for the `data.csv` file.
 
-They sound interesting because they don't import voxels directly but place sizable spheres in SculptrVRs virtual space.  
-It's likely that I add options to use one of these output formats as I expect the current output to be either:
-
-- scattered tiny little voxels
-- a clumped up tiny model that you can hardly use
+There is still a possibility to specify coordinates as floats and put spheres instead of plain voxels. This might be interesting in some cases, so I'm going to implement that, too.  
+Maybe this will help with very scattered point clouds.
