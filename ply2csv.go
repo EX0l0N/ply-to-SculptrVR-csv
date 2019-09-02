@@ -278,13 +278,13 @@ func write_data_csv_from_raster(r intpointcloud) {
 
 	bw := bufio.NewWriter(f)
 
-	bw.WriteString("X, Y, Z, R, G, B\r\n")
+	bw.WriteString("X, Y, Z, level, R, G, B, mat\r\n")
 
 	for x, _ := range r {
 		for y, _ := range r[x] {
 			for z, _ := range r[x][y] {
 				p := r[x][y][z]
-				bw.WriteString(fmt.Sprintf("%d, %d, %d, %d, %d, %d\r\n", x, y, z, p[0], p[1], p[2]))
+				bw.WriteString(fmt.Sprintf("%d, %d, %d, 10, %d, %d, %d, 255\r\n", x, y, z, p[0], p[1], p[2]))
 			}
 		}
 	}
