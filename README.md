@@ -40,7 +40,7 @@ You are expected to run this from any kind `shell`. (sorry no GUI(, yet?))
 Since I even use `bash` [(MSYS2)](https://www.msys2.org/) when on windows I have no idea how this would look on the default Windows command line.  
 But you should be able to figure it out.
 
-Be warned: **The output is always `data.csv` in your current working directory**  
+Be warned: **The output is always `Data.csv` in your current working directory**  
 This might change if I find the time to work on minor stuff.
 
 ### Invocation
@@ -102,7 +102,7 @@ The other modes try to smooth surfaces, which will totally eat up a single layer
 
 ## What the future might bring
 
-The author of SculptrVR has described several alternative formats for the `data.csv` file.
+The author of SculptrVR has described several alternative formats for the `Data.csv` file.
 
 There is still a possibility to specify coordinates as floats and put spheres instead of plain voxels. This might be interesting in some cases, so I'm going to implement that, too.  
 Maybe this will help with very scattered point clouds.
