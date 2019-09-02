@@ -303,6 +303,11 @@ func main() {
 	var input *bufio.Reader
 	var scale float64
 
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: ./ply2csv <scale-factor> <ply-file>")
+		return
+	}
+
 	if s, err := strconv.ParseFloat(os.Args[1], 64); err != nil {
 		panic(fmt.Sprintf("Can not parse %q as scale.\n", os.Args[1]))
 	} else {
