@@ -80,7 +80,8 @@ This effect should be used to scale your point cloud to an optimal size, where m
 #### If you use `sphere-size`…
 then `ply2csv` will only scale coordinates, but not raster anything and neither colors nor vertices will be merged. As a result the `Data.csv` will be populated with (scaled) floating point coordinates and every point will be interpreted as sphere later on. The size of that sphere will be the value that you specified, so it is fixed for all points.
 
-To get a good model with mostly solid geometry you need to play with scale and sphere-size. Again optimal values depend on your data.
+To get a good model with mostly solid geometry you need to play with scale and sphere-size. Again optimal values depend on your data.  
+**Be warned:** This mode will use _a lot_ of RAM during the import.
 
 In both cases the Y & Z axis will be swapped While saving , because ply default is Y-up and Z-depth.
 
@@ -117,11 +118,8 @@ The other two display modes try to smooth surfaces, which will totally eat up a 
 
 **If you used the sphere mode…**
 
-then you should see spheres popping up, but the whole import might take up a minute until all spheres have been placed.
+then you should see spheres popping up, but the whole import might take up a minute until all spheres have been placed.  
+Actually I couldn't test this successfully for at least one time, the placing of spheres seems to depend on your viewing scale so scaling in and out messed up my first import.  
+The next try I had been waiting patiently until all my RAM got eaten up. I don't have test data with less than 800k points, which seems so be too much for sphere placement.
 
-## What the future might bring
-
-The author of SculptrVR has described several alternative formats for the `Data.csv` file.
-
-There is still a possibility to specify coordinates as floats and put spheres instead of plain voxels. This might be interesting in some cases, so I'm going to implement that, too.  
-Maybe this will help with very scattered point clouds.
+Nevertheless I got the format right. So if this is useful to you, have fun!
