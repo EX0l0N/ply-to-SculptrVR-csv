@@ -287,7 +287,7 @@ func raster_and_merge_pointcloud(fsc float64, fpc floatpointcloud) intpointcloud
 }
 
 func write_data_csv_from_raster(r intpointcloud) {
-	f, err := os.OpenFile("Data.csv", os.O_RDWR|os.O_CREATE, 0644)
+	f, err := os.OpenFile("Data.csv", os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		panic(err)
 	}
