@@ -52,7 +52,7 @@ This might change if I find the time to work on minor stuff.
 |option|meaning |
 |:-|:-|
 |`scale-factor`:|something that could be parsed as a float|
-|`sphere-size`:|**optional** some float|
+|`sphere-size`:|**(optional)** some float|
 |`ply-file`:|a path to your `ply` file that works for your os|
 
 In practice this could translate to something like:
@@ -60,7 +60,6 @@ In practice this could translate to something like:
 ```
 ./ply2csv 512 point_cloud.ply
 ```
-
 **OR**
 
 ```
@@ -69,7 +68,7 @@ In practice this could translate to something like:
 
 ## What it does
 
-#### If you don't specify an extra `sphere-size`…
+#### If you don't specify an extra `sphere-size` (should be your default)…
 `ply2csv` will take your points, scale their coordinates by the scale factor and raster the resulting coordinates to `int`.  
 If several points fall together due to the effect of rouding (which is actually a good thing to create more dense data), the colors of all those points will be averaged.
 
@@ -78,7 +77,8 @@ This effect should be used to scale your point cloud to an optimal size, where m
 *Go play with scale!*
 
 #### If you use `sphere-size`…
-then `ply2csv` will only scale coordinates, but not raster anything and neither colors nor vertices will be merged. As a result the `Data.csv` will be populated with (scaled) floating point coordinates and every point will be interpreted as sphere later on. The size of that sphere will be the value that you specified, so it is fixed for all points.
+then `ply2csv` will only scale coordinates, but not raster anything and neither colors nor vertices will be merged. As a result the `Data.csv` will be populated with (scaled) floating point coordinates and every point will be interpreted as sphere later on. The size of that sphere will be the value that you specified, so it is fixed for all points.  
+Think of cm as base unit for a size estimate.
 
 To get a good model with mostly solid geometry you need to play with scale and sphere-size. Again optimal values depend on your data.  
 **Be warned:** This mode will use _a lot_ of RAM during the import.
