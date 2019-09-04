@@ -286,13 +286,29 @@ func raster_and_merge_pointcloud(fsc float64, fpc floatpointcloud) intpointcloud
 	return ipc
 }
 
-func write_data_csv_from_raster(r intpointcloud) {
+func open_data_csv() (*os.File, *bufio.Writer) {
 	f, err := os.OpenFile("Data.csv", os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		panic(err)
 	}
 
-	bw := bufio.NewWriter(f)
+	w := bufio.NewWriter(f)
+
+	return f, w
+}
+
+func cleanup(f *os.File, bw *bufio.Writer) {
+	if err := bw.Flush(); err != nil {
+		panic(err)
+	}
+
+	if err := f.Close(); err != nil {
+		panic(err)
+	}
+}
+
+func write_data_csv_from_raster(r intpointcloud) {
+	f, bw := open_data_csv()
 
 	bw.WriteString("X, Y, Z, level, R, G, B, mat\r\n")
 
@@ -305,22 +321,44 @@ func write_data_csv_from_raster(r intpointcloud) {
 		}
 	}
 
-	if err := bw.Flush(); err != nil {
-		panic(err)
+	cleanup(f, bw)
+}
+
+func dump_data_csv_with_sacled_sphere_positions(scl, spz float32, fpc floatpointcloud) {
+	var fp coord_point
+	f, bw := open_data_csv()
+
+	bw.WriteString("X, Y, Z, Radius, R, G, B\r\n")
+
+	for x, _ := range fpc {
+		for y, _ := range fpc[x] {
+			for z, _ := range fpc[x][y] {
+				for p, _ := range fpc[x][y][z] {
+					fp.p = fpc[x][y][z][p]
+					fp.x = scl * x
+					fp.y = scl * y
+					fp.z = scl * z
+
+					bw.WriteString(fmt.Sprintf("%.6f, %.6f, %.6f, %.3f, %d, %d, %d\r\n", fp.x, fp.z, fp.y, spz, fp.p[0], fp.p[1], fp.p[2]))
+				}
+			}
+		}
 	}
 
-	if err := f.Close(); err != nil {
-		panic(err)
-	}
+	cleanup(f, bw)
 }
 
 func main() {
-	var header ply_header
-	var input *bufio.Reader
-	var scale float64
+	var (
+		header       ply_header
+		file_arg_pos = 2
+		input        *bufio.Reader
+		scale        float64
+		spheresize   float32 = -1
+	)
 
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: ./ply2csv <scale-factor> <ply-file>")
+		fmt.Println("Usage: ./ply2csv <scale-factor> [<sphere-size>] <ply-file>")
 		return
 	}
 
@@ -330,7 +368,15 @@ func main() {
 		scale = s
 	}
 
-	if infile, err := os.Open(os.Args[2]); err != nil {
+	if s, err := strconv.ParseFloat(os.Args[2], 64); err == nil {
+		spheresize = float32(s)
+		if spheresize < 0 {
+			panic("Oh no. Why did you specify a negative sphere size?")
+		}
+		file_arg_pos++
+	}
+
+	if infile, err := os.Open(os.Args[file_arg_pos]); err != nil {
 		panic(err)
 	} else {
 		defer infile.Close()
@@ -341,7 +387,13 @@ func main() {
 	header = parse_header(input)
 	fmt.Println("Reading ply vertex data…")
 	cloud := read_pointcloud(input, header)
-	raster := raster_and_merge_pointcloud(scale, cloud)
-	fmt.Println("Wrting Data.csv.")
-	write_data_csv_from_raster(raster)
+
+	if spheresize < 0 {
+		raster := raster_and_merge_pointcloud(scale, cloud)
+		fmt.Println("Wrting Data.csv.")
+		write_data_csv_from_raster(raster)
+	} else {
+		fmt.Println("Wrting Data.csv for sphere import.")
+		dump_data_csv_with_sacled_sphere_positions(float32(scale), spheresize, cloud)
+	}
 }
