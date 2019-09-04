@@ -65,6 +65,7 @@ func parse_header(in io.Reader) ply_header {
 		case "comment":
 			fmt.Println("Ignoring comment:", line[1:])
 		case "format":
+			checked_fields[REQ_FORMAT] = true
 			if line[1] != "binary_little_endian" || line[2] != "1.0" {
 				fmt.Println(`Format needs to be exactly "binary_little_endian 1.0"`)
 				fmt.Printf("Got %q instead.", line[1:])
@@ -72,6 +73,7 @@ func parse_header(in io.Reader) ply_header {
 			}
 		case "element":
 			if line[1] == "vertex" {
+				checked_fields[REQ_VERTEX] = true
 				fmt.Print("Parsing vertex count: ")
 				if i, err := strconv.ParseInt(line[2], 10, 64); err != nil {
 					panic(err)
@@ -132,6 +134,20 @@ func parse_header(in io.Reader) ply_header {
 			fmt.Println(line)
 			panic("Can't read that.")
 		}
+
+	}
+
+	if !(checked_fields[REQ_FORMAT] &&
+		checked_fields[REQ_VERTEX] &&
+		checked_fields[REQ_X] &&
+		checked_fields[REQ_Y] &&
+		checked_fields[REQ_Z] &&
+		checked_fields[REQ_RED] &&
+		checked_fields[REQ_GREEN] &&
+		checked_fields[REQ_BLUE]) {
+
+		fmt.Println(checked_fields)
+		panic("Did not see all the required fields in header. Giving up.")
 	}
 
 	return header
@@ -326,6 +342,6 @@ func main() {
 	fmt.Println("Reading ply vertex data…")
 	cloud := read_pointcloud(input, header)
 	raster := raster_and_merge_pointcloud(scale, cloud)
-	fmt.Println("Wrting data.csv.")
+	fmt.Println("Wrting Data.csv.")
 	write_data_csv_from_raster(raster)
 }
