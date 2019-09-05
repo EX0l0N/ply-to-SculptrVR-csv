@@ -324,7 +324,7 @@ func write_data_csv_from_raster(r intpointcloud) {
 	cleanup(f, bw)
 }
 
-func dump_data_csv_with_sacled_sphere_positions(scl, spz float32, fpc floatpointcloud) {
+func dump_data_csv_with_scaled_sphere_positions(scl, spz float32, fpc floatpointcloud) {
 	var fp coord_point
 	f, bw := open_data_csv()
 
@@ -394,6 +394,6 @@ func main() {
 		write_data_csv_from_raster(raster)
 	} else {
 		fmt.Println("Wrting Data.csv for sphere import.")
-		dump_data_csv_with_sacled_sphere_positions(float32(scale), spheresize, cloud)
+		dump_data_csv_with_scaled_sphere_positions(float32(scale), spheresize, cloud)
 	}
 }
