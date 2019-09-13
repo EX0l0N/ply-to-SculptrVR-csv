@@ -307,7 +307,22 @@ func cleanup(f *os.File, bw *bufio.Writer) {
 	}
 }
 
-func write_data_csv_from_raster(r intpointcloud) {
+func auto_level(s int) int {
+	var max_dim = 1
+
+	for level := 20; level >= 0; level-- {
+		if s <= max_dim {
+			return level
+		}
+
+		max_dim <<= 1
+	}
+
+	panic("Could not find level for this scale.")
+}
+
+func write_data_csv_from_raster(scl float64, r intpointcloud) {
+	var level int = auto_level(int(math.Ceil(math.Abs(float64(scl)))))
 	f, bw := open_data_csv()
 
 	bw.WriteString("X, Y, Z, level, R, G, B, mat\r\n")
@@ -316,7 +331,7 @@ func write_data_csv_from_raster(r intpointcloud) {
 		for y, _ := range r[x] {
 			for z, _ := range r[x][y] {
 				p := r[x][y][z]
-				bw.WriteString(fmt.Sprintf("%d, %d, %d, 10, %d, %d, %d, 255\r\n", x, z, y, p[0], p[1], p[2]))
+				bw.WriteString(fmt.Sprintf("%d, %d, %d, %d, %d, %d, %d, 255\r\n", x, z, y, level, p[0], p[1], p[2]))
 			}
 		}
 	}
@@ -391,7 +406,7 @@ func main() {
 	if spheresize < 0 {
 		raster := raster_and_merge_pointcloud(scale, cloud)
 		fmt.Println("Wrting Data.csv.")
-		write_data_csv_from_raster(raster)
+		write_data_csv_from_raster(scale, raster)
 	} else {
 		fmt.Println("Wrting Data.csv for sphere import.")
 		dump_data_csv_with_scaled_sphere_positions(float32(scale), spheresize, cloud)
