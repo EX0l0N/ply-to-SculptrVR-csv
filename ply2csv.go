@@ -307,12 +307,12 @@ func cleanup(f *os.File, bw *bufio.Writer) {
 	}
 }
 
-func auto_level(s int) int {
-	var max_dim = 1
+func auto_level(s int) (int32, int) {
+	var max_dim int = 1
 
 	for level := 20; level >= 0; level-- {
 		if s <= max_dim {
-			return level
+			return int32(max_dim), level
 		}
 
 		max_dim <<= 1
@@ -322,15 +322,26 @@ func auto_level(s int) int {
 }
 
 func write_data_csv_from_raster(scl float64, r intpointcloud) {
-	var level int = auto_level(int(math.Ceil(math.Abs(float64(scl)))))
+	maxd, level := auto_level(int(math.Ceil(math.Abs(float64(scl)))))
 	f, bw := open_data_csv()
 
 	bw.WriteString("X, Y, Z, level, R, G, B, mat\r\n")
 
 	for x, _ := range r {
+		if x > maxd || x < -maxd {
+			fmt.Println("X value to big for scale.")
+			continue
+		}
 		for y, _ := range r[x] {
-			for z, _ := range r[x][y] {
-				p := r[x][y][z]
+			if y > maxd || y < -maxd {
+				fmt.Println("Y value to big for scale.")
+				continue
+			}
+			for z, p := range r[x][y] {
+				if z > maxd || z < -maxd {
+					fmt.Println("Y value to big for scale.")
+					continue
+				}
 				bw.WriteString(fmt.Sprintf("%d, %d, %d, %d, %d, %d, %d, 255\r\n", x, z, y, level, p[0], p[1], p[2]))
 			}
 		}
