@@ -83,7 +83,7 @@ Think of cm as base unit for a size estimate.
 To get a good model with mostly solid geometry you need to play with scale and sphere-size. Again optimal values depend on your data.  
 **Be warned:** This mode will use _a lot_ of RAM during the import.
 
-In both cases the Y & Z axis will be swapped While saving , because ply default is Y-up and Z-depth.
+In both cases the Y & Z axis will be swapped While saving, because ply default is Y-up and Z-depth.
 
 ## How to import to SculptrVR
 
