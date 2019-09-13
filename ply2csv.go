@@ -339,7 +339,7 @@ func write_data_csv_from_raster(scl float64, r intpointcloud) {
 			}
 			for z, p := range r[x][y] {
 				if z > maxd || z < -maxd {
-					fmt.Println("Y value to big for scale.")
+					fmt.Println("Z value to big for scale.")
 					continue
 				}
 				bw.WriteString(fmt.Sprintf("%d, %d, %d, %d, %d, %d, %d, 255\r\n", x, z, y, level, p[0], p[1], p[2]))
