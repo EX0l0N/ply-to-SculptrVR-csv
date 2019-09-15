@@ -32,6 +32,17 @@ type ply_header struct {
 
 type point [3]byte
 
+type fcoords [3]float32
+type icoords [3]int32
+
+func (fc fcoords) scale_and_raster(f float64) icoords {
+	return icoords{
+		int32(math.Round(f * float64(fc[0]))),
+		int32(math.Round(f * float64(fc[1]))),
+		int32(math.Round(f * float64(fc[2]))),
+	}
+}
+
 type coord_point struct {
 	x, y, z float32
 	r, g, b byte
@@ -47,8 +58,18 @@ func (cp *coord_point) set_rgb(p point) {
 	cp.b = p[2]
 }
 
-type floatpointcloud map[float32]map[float32]map[float32][]point
-type intpointcloud map[int32]map[int32]map[int32]point
+func (cp *coord_point) set_xyz(fc fcoords, f float32) {
+	cp.x = f * fc[0]
+	cp.y = f * fc[1]
+	cp.z = f * fc[2]
+}
+
+func (cp coord_point) fcoords() fcoords {
+	return fcoords{cp.x, cp.y, cp.z}
+}
+
+type floatpointcloud map[fcoords][]point
+type intpointcloud map[icoords]point
 
 func parse_header(in io.Reader) ply_header {
 	var checked_fields [REQ_FIELD_LEN]bool
@@ -184,7 +205,7 @@ func read_byte(in *bufio.Reader) byte {
 }
 
 func read_pointcloud(input *bufio.Reader, header ply_header) floatpointcloud {
-	pc := make(map[float32]map[float32]map[float32][]point)
+	pc := make(map[fcoords][]point)
 
 	for c := int64(0); c < header.num_vertices; c++ {
 		var cp coord_point
@@ -212,18 +233,14 @@ func read_pointcloud(input *bufio.Reader, header ply_header) floatpointcloud {
 			}
 		}
 
-		if _, ok := pc[cp.x]; !ok {
-			pc[cp.x] = make(map[float32]map[float32][]point)
-		}
-		if _, ok := pc[cp.x][cp.y]; !ok {
-			pc[cp.x][cp.y] = make(map[float32][]point)
-		}
-		if _, ok := pc[cp.x][cp.y][cp.z]; !ok {
-			pc[cp.x][cp.y][cp.z] = make([]point, 1, 3)
-			pc[cp.x][cp.y][cp.z][0] = cp.point()
+		fc := cp.fcoords()
+
+		if _, ok := pc[fc]; !ok {
+			pc[fc] = make([]point, 1, 3)
+			pc[fc][0] = cp.point()
 		} else {
 			fmt.Printf("Double vertex encountered at %q, %q, %q.\n", cp.x, cp.y, cp.z)
-			pc[cp.x][cp.y][cp.z] = append(pc[cp.x][cp.y][cp.z], cp.point())
+			pc[fc] = append(pc[fc], cp.point())
 		}
 	}
 
@@ -231,66 +248,35 @@ func read_pointcloud(input *bufio.Reader, header ply_header) floatpointcloud {
 }
 
 func raster_and_merge_pointcloud(fsc float64, fpc floatpointcloud) intpointcloud {
-	rasted := make(map[int32]map[int32]map[int32][]point)
-	ipc := make(map[int32]map[int32]map[int32]point)
+	rasted := make(map[icoords][]point)
+	ipc := make(map[icoords]point)
 
 	fmt.Println("Scaling vertex indices to int32…")
 
-	for x, _ := range fpc {
-		var scaledx = int32(math.Round(fsc * float64(x)))
-
-		if _, ok := rasted[scaledx]; !ok {
-			rasted[scaledx] = make(map[int32]map[int32][]point)
+	for fco, _ := range fpc {
+		scaled := fco.scale_and_raster(fsc)
+		if _, ok := rasted[scaled]; !ok {
+			rasted[scaled] = make([]point, 0, 5)
 		}
-
-		for y, _ := range fpc[x] {
-			var scaledy = int32(math.Round(fsc * float64(y)))
-
-			if _, ok := rasted[scaledx][scaledy]; !ok {
-				rasted[scaledx][scaledy] = make(map[int32][]point)
-			}
-
-			for z, _ := range fpc[x][y] {
-				var scaledz = int32(math.Round(fsc * float64(z)))
-
-				if _, ok := rasted[scaledx][scaledy][scaledz]; !ok {
-					rasted[scaledx][scaledy][scaledz] = make([]point, 0, 5)
-				}
-				rasted[scaledx][scaledy][scaledz] = append(rasted[scaledx][scaledy][scaledz], fpc[x][y][z]...)
-			}
-		}
+		rasted[scaled] = append(rasted[scaled], fpc[fco]...)
 	}
 
 	fmt.Println("Merging colors of double vertices…")
 
-	for x, _ := range rasted {
+	for ico, _ := range rasted {
+		var reds int
+		var greens int
+		var blues int
 
-		if _, ok := ipc[x]; !ok {
-			ipc[x] = make(map[int32]map[int32]point)
+		var point_slice_length = len(rasted[ico])
+
+		for _, point := range rasted[ico] {
+			reds += int(point[0])
+			greens += int(point[1])
+			blues += int(point[2])
 		}
 
-		for y, _ := range rasted[x] {
-
-			if _, ok := ipc[x][y]; !ok {
-				ipc[x][y] = make(map[int32]point)
-			}
-
-			for z, _ := range rasted[x][y] {
-				var reds int
-				var greens int
-				var blues int
-
-				var point_slice_length = len(rasted[x][y][z])
-
-				for _, point := range rasted[x][y][z] {
-					reds += int(point[0])
-					greens += int(point[1])
-					blues += int(point[2])
-				}
-
-				ipc[x][y][z] = point{byte(reds / point_slice_length), byte(greens / point_slice_length), byte(blues / point_slice_length)}
-			}
-		}
+		ipc[ico] = point{byte(reds / point_slice_length), byte(greens / point_slice_length), byte(blues / point_slice_length)}
 	}
 
 	return ipc
@@ -331,30 +317,33 @@ func auto_level(s int) (int32, int) {
 	panic("Could not find level for this scale.")
 }
 
+func check_dimensions(md int32, ico icoords) bool {
+	if ico[0] > md || ico[0] < -md {
+		fmt.Println("X value to big for scale.")
+		return false
+	}
+	if ico[1] > md || ico[1] < -md {
+		fmt.Println("Y value to big for scale.")
+		return false
+	}
+	if ico[2] > md || ico[2] < -md {
+		fmt.Println("Z value to big for scale.")
+		return false
+	}
+	return true
+}
+
 func write_data_csv_from_raster(scl float64, r intpointcloud) {
 	maxd, level := auto_level(int(math.Ceil(math.Abs(float64(scl)))))
 	f, bw := open_data_csv()
 
 	bw.WriteString("X, Y, Z, level, R, G, B, mat\r\n")
 
-	for x, _ := range r {
-		if x > maxd || x < -maxd {
-			fmt.Println("X value to big for scale.")
+	for ico, p := range r {
+		if !check_dimensions(maxd, ico) {
 			continue
 		}
-		for y, _ := range r[x] {
-			if y > maxd || y < -maxd {
-				fmt.Println("Y value to big for scale.")
-				continue
-			}
-			for z, p := range r[x][y] {
-				if z > maxd || z < -maxd {
-					fmt.Println("Z value to big for scale.")
-					continue
-				}
-				bw.WriteString(fmt.Sprintf("%d, %d, %d, %d, %d, %d, %d, 255\r\n", x, z, y, level, p[0], p[1], p[2]))
-			}
-		}
+		bw.WriteString(fmt.Sprintf("%d, %d, %d, %d, %d, %d, %d, 255\r\n", ico[0], ico[2], ico[1], level, p[0], p[1], p[2]))
 	}
 
 	cleanup(f, bw)
@@ -366,18 +355,12 @@ func dump_data_csv_with_scaled_sphere_positions(scl, spz float32, fpc floatpoint
 
 	bw.WriteString("X, Y, Z, Radius, R, G, B\r\n")
 
-	for x, _ := range fpc {
-		for y, _ := range fpc[x] {
-			for z, _ := range fpc[x][y] {
-				for p, _ := range fpc[x][y][z] {
-					fp.set_rgb(fpc[x][y][z][p])
-					fp.x = scl * x
-					fp.y = scl * y
-					fp.z = scl * z
+	for fco, _ := range fpc {
+		fp.set_xyz(fco, scl)
+		for _, p := range fpc[fco] {
+			fp.set_rgb(p)
 
-					bw.WriteString(fmt.Sprintf("%.6f, %.6f, %.6f, %.3f, %d, %d, %d\r\n", fp.x, fp.z, fp.y, spz, fp.r, fp.g, fp.b))
-				}
-			}
+			bw.WriteString(fmt.Sprintf("%.6f, %.6f, %.6f, %.3f, %d, %d, %d\r\n", fp.x, fp.z, fp.y, spz, fp.r, fp.g, fp.b))
 		}
 	}
 
