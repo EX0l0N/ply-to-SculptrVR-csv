@@ -334,7 +334,7 @@ func check_dimensions(md int32, ico icoords) bool {
 }
 
 func write_data_csv_from_raster(scl float64, r intpointcloud) {
-	maxd, level := auto_level(int(math.Ceil(math.Abs(float64(scl)))))
+	maxd, level := auto_level(int(math.Ceil(math.Abs(scl))))
 	f, bw := open_data_csv()
 
 	bw.WriteString("X, Y, Z, level, R, G, B, mat\r\n")
