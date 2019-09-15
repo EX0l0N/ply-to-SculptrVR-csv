@@ -34,7 +34,17 @@ type point [3]byte
 
 type coord_point struct {
 	x, y, z float32
-	p       point
+	r, g, b byte
+}
+
+func (cp coord_point) point() point {
+	return point{cp.r, cp.g, cp.b}
+}
+
+func (cp *coord_point) set_rgb(p point) {
+	cp.r = p[0]
+	cp.g = p[1]
+	cp.b = p[2]
 }
 
 type floatpointcloud map[float32]map[float32]map[float32][]point
@@ -188,11 +198,11 @@ func read_pointcloud(input *bufio.Reader, header ply_header) floatpointcloud {
 			case REQ_Z:
 				cp.z = read_float32(input)
 			case REQ_RED:
-				cp.p[0] = read_byte(input)
+				cp.r = read_byte(input)
 			case REQ_GREEN:
-				cp.p[1] = read_byte(input)
+				cp.g = read_byte(input)
 			case REQ_BLUE:
-				cp.p[2] = read_byte(input)
+				cp.b = read_byte(input)
 			case REQ_ALPHA:
 				if d, err := input.Discard(1); err != nil || d != 1 {
 					panic("Unable to discard one byte.")
@@ -210,10 +220,10 @@ func read_pointcloud(input *bufio.Reader, header ply_header) floatpointcloud {
 		}
 		if _, ok := pc[cp.x][cp.y][cp.z]; !ok {
 			pc[cp.x][cp.y][cp.z] = make([]point, 1, 3)
-			pc[cp.x][cp.y][cp.z][0] = cp.p
+			pc[cp.x][cp.y][cp.z][0] = cp.point()
 		} else {
 			fmt.Printf("Double vertex encountered at %q, %q, %q.\n", cp.x, cp.y, cp.z)
-			pc[cp.x][cp.y][cp.z] = append(pc[cp.x][cp.y][cp.z], cp.p)
+			pc[cp.x][cp.y][cp.z] = append(pc[cp.x][cp.y][cp.z], cp.point())
 		}
 	}
 
@@ -360,12 +370,12 @@ func dump_data_csv_with_scaled_sphere_positions(scl, spz float32, fpc floatpoint
 		for y, _ := range fpc[x] {
 			for z, _ := range fpc[x][y] {
 				for p, _ := range fpc[x][y][z] {
-					fp.p = fpc[x][y][z][p]
+					fp.set_rgb(fpc[x][y][z][p])
 					fp.x = scl * x
 					fp.y = scl * y
 					fp.z = scl * z
 
-					bw.WriteString(fmt.Sprintf("%.6f, %.6f, %.6f, %.3f, %d, %d, %d\r\n", fp.x, fp.z, fp.y, spz, fp.p[0], fp.p[1], fp.p[2]))
+					bw.WriteString(fmt.Sprintf("%.6f, %.6f, %.6f, %.3f, %d, %d, %d\r\n", fp.x, fp.z, fp.y, spz, fp.r, fp.g, fp.b))
 				}
 			}
 		}
