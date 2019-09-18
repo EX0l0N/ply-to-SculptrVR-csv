@@ -290,7 +290,7 @@ func raster_and_merge_pointcloud(fsc float64, fpc floatpointcloud) intpointcloud
 }
 
 func open_data_csv() (*os.File, *bufio.Writer) {
-	f, err := os.OpenFile("Data.csv", os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
+	f, err := os.OpenFile(config.outfile, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -403,8 +403,9 @@ func init() {
 	flag.BoolVar(&config.help, "h", false, help)
 	flag.BoolVar(&config.help, "help", false, help)
 	flag.Float64Var(&config.scale, "scale", 100, "multiply you models coordinates by this factor")
-	flag.Float64Var(&config.sphere, "sphere", -1, "enable sphere mode and pus spheres of this size")
+	flag.Float64Var(&config.sphere, "sphere", -1, "enable sphere mode and put spheres of this size")
 	flag.BoolVar(&config.massive, "massive", false, "try to create more dense data by using multiple voxels per point")
+	flag.StringVar(&config.outfile, "o", "Data.csv", "use this filepath as output")
 }
 
 func main() {
@@ -431,10 +432,10 @@ func main() {
 
 	if config.sphere < 0 {
 		raster := raster_and_merge_pointcloud(config.scale, cloud)
-		fmt.Println("Wrting Data.csv.")
+		fmt.Printf("Writing %q.\n", config.outfile)
 		write_data_csv_from_raster(config.scale, raster)
 	} else {
-		fmt.Println("Wrting Data.csv for sphere import.")
+		fmt.Printf("Wrting %q for sphere import.\n", config.outfile)
 		dump_data_csv_with_scaled_sphere_positions(float32(config.scale), float32(config.sphere), cloud)
 	}
 }
