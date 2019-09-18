@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io"
 	"math"
@@ -23,6 +24,12 @@ const (
 	REQ_FORMAT
 	REQ_FIELD_LEN
 )
+
+var config struct {
+	scale, sphere   float64
+	help, massive   bool
+	infile, outfile string
+}
 
 type ply_header struct {
 	num_vertices int64
@@ -367,35 +374,50 @@ func dump_data_csv_with_scaled_sphere_positions(scl, spz float32, fpc floatpoint
 	cleanup(f, bw)
 }
 
+func check_flags() bool {
+	flag.Parse()
+
+	config.infile = flag.Arg(0)
+
+	if config.help {
+		flag.PrintDefaults()
+		return false
+	}
+
+	if config.sphere != -1 && config.massive {
+		fmt.Println("Sphere mode and massive mode can't be enabled at the same time.")
+		return false
+	}
+
+	if config.infile == "" {
+		fmt.Println("No input ply filename given.")
+		return false
+	}
+
+	return true
+}
+
+func init() {
+	const help = "this text"
+
+	flag.BoolVar(&config.help, "h", false, help)
+	flag.BoolVar(&config.help, "help", false, help)
+	flag.Float64Var(&config.scale, "scale", 100, "multiply you models coordinates by this factor")
+	flag.Float64Var(&config.sphere, "sphere", -1, "enable sphere mode and pus spheres of this size")
+	flag.BoolVar(&config.massive, "massive", false, "try to create more dense data by using multiple voxels per point")
+}
+
 func main() {
 	var (
-		header       ply_header
-		file_arg_pos = 2
-		input        *bufio.Reader
-		scale        float64
-		spheresize   float32 = -1
+		header ply_header
+		input  *bufio.Reader
 	)
 
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: ./ply2csv <scale-factor> [<sphere-size>] <ply-file>")
+	if !check_flags() {
 		return
 	}
 
-	if s, err := strconv.ParseFloat(os.Args[1], 64); err != nil {
-		panic(fmt.Sprintf("Can not parse %q as scale.\n", os.Args[1]))
-	} else {
-		scale = s
-	}
-
-	if s, err := strconv.ParseFloat(os.Args[2], 64); err == nil {
-		spheresize = float32(s)
-		if spheresize < 0 {
-			panic("Oh no. Why did you specify a negative sphere size?")
-		}
-		file_arg_pos++
-	}
-
-	if infile, err := os.Open(os.Args[file_arg_pos]); err != nil {
+	if infile, err := os.Open(config.infile); err != nil {
 		panic(err)
 	} else {
 		defer infile.Close()
@@ -407,12 +429,12 @@ func main() {
 	fmt.Println("Reading ply vertex data…")
 	cloud := read_pointcloud(input, header)
 
-	if spheresize < 0 {
-		raster := raster_and_merge_pointcloud(scale, cloud)
+	if config.sphere < 0 {
+		raster := raster_and_merge_pointcloud(config.scale, cloud)
 		fmt.Println("Wrting Data.csv.")
-		write_data_csv_from_raster(scale, raster)
+		write_data_csv_from_raster(config.scale, raster)
 	} else {
 		fmt.Println("Wrting Data.csv for sphere import.")
-		dump_data_csv_with_scaled_sphere_positions(float32(scale), spheresize, cloud)
+		dump_data_csv_with_scaled_sphere_positions(float32(config.scale), float32(config.sphere), cloud)
 	}
 }
