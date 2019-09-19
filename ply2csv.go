@@ -51,41 +51,43 @@ func (fc fcoords) scale_and_raster(f float64) icoords {
 }
 
 func (fc fcoords) scale_and_raster_multivoxel(f float64) [7]icoords {
+	var midpoint = icoords{
+		int32(math.Round(f * float64(fc[0]))),
+		int32(math.Round(f * float64(fc[1]))),
+		int32(math.Round(f * float64(fc[2]))),
+	}
+
 	return [7]icoords{
+		midpoint,
 		{
-			int32(math.Round(f * float64(fc[0]))),
-			int32(math.Round(f * float64(fc[1]))),
-			int32(math.Round(f * float64(fc[2]))),
+			midpoint[0] - 1,
+			midpoint[1],
+			midpoint[2],
 		},
 		{
-			int32(math.Round(f*float64(fc[0]))) - 1,
-			int32(math.Round(f * float64(fc[1]))),
-			int32(math.Round(f * float64(fc[2]))),
+			midpoint[0] + 1,
+			midpoint[1],
+			midpoint[2],
 		},
 		{
-			int32(math.Round(f*float64(fc[0]))) + 1,
-			int32(math.Round(f * float64(fc[1]))),
-			int32(math.Round(f * float64(fc[2]))),
+			midpoint[0],
+			midpoint[1] - 1,
+			midpoint[2],
 		},
 		{
-			int32(math.Round(f * float64(fc[0]))),
-			int32(math.Round(f*float64(fc[1]))) - 1,
-			int32(math.Round(f * float64(fc[2]))),
+			midpoint[0],
+			midpoint[1] + 1,
+			midpoint[2],
 		},
 		{
-			int32(math.Round(f * float64(fc[0]))),
-			int32(math.Round(f*float64(fc[1]))) + 1,
-			int32(math.Round(f * float64(fc[2]))),
+			midpoint[0],
+			midpoint[1],
+			midpoint[2] - 1,
 		},
 		{
-			int32(math.Round(f * float64(fc[0]))),
-			int32(math.Round(f * float64(fc[1]))),
-			int32(math.Round(f*float64(fc[2]))) - 1,
-		},
-		{
-			int32(math.Round(f * float64(fc[0]))),
-			int32(math.Round(f * float64(fc[1]))),
-			int32(math.Round(f*float64(fc[2]))) + 1,
+			midpoint[0],
+			midpoint[1],
+			midpoint[2] + 1,
 		},
 	}
 }
