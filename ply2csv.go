@@ -50,6 +50,46 @@ func (fc fcoords) scale_and_raster(f float64) icoords {
 	}
 }
 
+func (fc fcoords) scale_and_raster_multivoxel(f float64) [7]icoords {
+	return [7]icoords{
+		{
+			int32(math.Round(f * float64(fc[0]))),
+			int32(math.Round(f * float64(fc[1]))),
+			int32(math.Round(f * float64(fc[2]))),
+		},
+		{
+			int32(math.Round(f*float64(fc[0]))) - 1,
+			int32(math.Round(f * float64(fc[1]))),
+			int32(math.Round(f * float64(fc[2]))),
+		},
+		{
+			int32(math.Round(f*float64(fc[0]))) + 1,
+			int32(math.Round(f * float64(fc[1]))),
+			int32(math.Round(f * float64(fc[2]))),
+		},
+		{
+			int32(math.Round(f * float64(fc[0]))),
+			int32(math.Round(f*float64(fc[1]))) - 1,
+			int32(math.Round(f * float64(fc[2]))),
+		},
+		{
+			int32(math.Round(f * float64(fc[0]))),
+			int32(math.Round(f*float64(fc[1]))) + 1,
+			int32(math.Round(f * float64(fc[2]))),
+		},
+		{
+			int32(math.Round(f * float64(fc[0]))),
+			int32(math.Round(f * float64(fc[1]))),
+			int32(math.Round(f*float64(fc[2]))) - 1,
+		},
+		{
+			int32(math.Round(f * float64(fc[0]))),
+			int32(math.Round(f * float64(fc[1]))),
+			int32(math.Round(f*float64(fc[2]))) + 1,
+		},
+	}
+}
+
 type coord_point struct {
 	x, y, z float32
 	r, g, b byte
@@ -254,18 +294,31 @@ func read_pointcloud(input *bufio.Reader, header ply_header) floatpointcloud {
 	return pc
 }
 
-func raster_and_merge_pointcloud(fsc float64, fpc floatpointcloud) intpointcloud {
+func raster_and_merge_pointcloud(fsc float64, multi bool, fpc floatpointcloud) intpointcloud {
 	rasted := make(map[icoords][]point)
 	ipc := make(map[icoords]point)
 
 	fmt.Println("Scaling vertex indices to int32…")
 
-	for fco, _ := range fpc {
-		scaled := fco.scale_and_raster(fsc)
-		if _, ok := rasted[scaled]; !ok {
-			rasted[scaled] = make([]point, 0, 5)
+	// copy paste this, so the multi if is outside the loop
+	if multi {
+		for fco, _ := range fpc {
+			multiple := fco.scale_and_raster_multivoxel(fsc)
+			for _, scaled := range multiple {
+				if _, ok := rasted[scaled]; !ok {
+					rasted[scaled] = make([]point, 0, 10)
+				}
+				rasted[scaled] = append(rasted[scaled], fpc[fco]...)
+			}
 		}
-		rasted[scaled] = append(rasted[scaled], fpc[fco]...)
+	} else {
+		for fco, _ := range fpc {
+			scaled := fco.scale_and_raster(fsc)
+			if _, ok := rasted[scaled]; !ok {
+				rasted[scaled] = make([]point, 0, 5)
+			}
+			rasted[scaled] = append(rasted[scaled], fpc[fco]...)
+		}
 	}
 
 	fmt.Println("Merging colors of double vertices…")
@@ -431,7 +484,7 @@ func main() {
 	cloud := read_pointcloud(input, header)
 
 	if config.sphere < 0 {
-		raster := raster_and_merge_pointcloud(config.scale, cloud)
+		raster := raster_and_merge_pointcloud(config.scale, config.massive, cloud)
 		fmt.Printf("Writing %q.\n", config.outfile)
 		write_data_csv_from_raster(config.scale, raster)
 	} else {
